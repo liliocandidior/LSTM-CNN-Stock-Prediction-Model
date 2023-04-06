@@ -16,7 +16,7 @@ df_log = pd.DataFrame(data_acquire.dataset[0])
 df_train = pd.DataFrame(data_acquire.dataset[2])
 df_test = pd.DataFrame(data_acquire.dataset[4])
 
-simulation_size = 10
+simulation_size = 1
 
 
 class Model:
@@ -174,12 +174,12 @@ for i in range(simulation_size):
     print('simulation %d' % (i + 1))
     results.append(forecast())
 
-accuracies = [calculate_accuracy(df_log['Close'].iloc[-test_size:].values, r) for r in results]
+accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-plt.plot(df_log['Close'].iloc[-test_size:].values, label='true trend', c='black')
+plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

@@ -7,17 +7,21 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
-from data import data_acquire
+
 tf.compat.v1.disable_eager_execution()
 sns.set()
 tf.compat.v1.random.set_random_seed(1234)
 
-df_log = pd.DataFrame(data_acquire.dataset[0])
-df_train = pd.DataFrame(data_acquire.dataset[2])
-df_test = pd.DataFrame(data_acquire.dataset[4])
+train_data = np.load("../data/train.npy")
+test_data = np.load('../data/test.npy')
+total_data = np.load('../data/total.npy')
+df_log = pd.DataFrame(total_data)
+df_train = pd.DataFrame(train_data)
+df_test = pd.DataFrame(test_data)
 
 simulation_size = 1
-
+df = df_log.iloc[:, 0].astype('float32')
+minmax = MinMaxScaler().fit(np.asarray(df).reshape(-1, 1))
 
 class Model:
     def __init__(
@@ -74,7 +78,7 @@ def anchor(signal, weight):
     return buffer
 
 
-test_size = len(data_acquire.dataset[3])
+test_size = len(test_data)
 num_layers = 1
 size_layer = 128
 timestamp = 5
@@ -163,23 +167,24 @@ def forecast():
         output_predict[-future_day + i] = out_logits[-1]
         date_ori.append(date_ori[-1] + timedelta(days=1))
 
-    #output_predict = minmax.inverse_transform(output_predict)
+    output_predict = minmax.inverse_transform(output_predict)
     deep_future = anchor(output_predict[:, 0], 0.3)
 
-    return deep_future[-test_size:]
+    return deep_future
 
 
 results = []
 for i in range(simulation_size):
     print('simulation %d' % (i + 1))
     results.append(forecast())
+print(results)
 
-accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
+accuracies = [calculate_accuracy(df_log.values, r) for r in results]
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
+plt.plot(df_log.values, label='true trend', c='black')
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

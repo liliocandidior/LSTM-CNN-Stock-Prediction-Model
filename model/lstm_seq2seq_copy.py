@@ -7,31 +7,17 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
-<<<<<<< HEAD
 
-=======
-import sys
-sys.path.append('../')
-from data import data_acquire
->>>>>>> 009f01c (lstm_s2s)
 tf.compat.v1.disable_eager_execution()
 sns.set()
 tf.compat.v1.random.set_random_seed(1234)
 
-<<<<<<< HEAD
 train_data = np.load("../data/train.npy")
 test_data = np.load('../data/test.npy')
 total_data = np.load('../data/total.npy')
 df_log = pd.DataFrame(total_data)
 df_train = pd.DataFrame(train_data)
 df_test = pd.DataFrame(test_data)
-=======
-df_log = pd.DataFrame(data_acquire.dataset[0])
-df_train = pd.DataFrame(data_acquire.dataset[2])
-df_test = pd.DataFrame(data_acquire.dataset[4])
-
-simulation_size = 1
->>>>>>> 009f01c (lstm_s2s)
 
 simulation_size = 1
 df = df_log.iloc[:, 0].astype('float32')
@@ -39,38 +25,53 @@ minmax = MinMaxScaler().fit(np.asarray(df).reshape(-1, 1))
 
 class Model:
     def __init__(
-            self,
-            learning_rate,
-            num_layers,
-            size,
-            size_layer,
-            output_size,
-            forget_bias=0.1,
+        self,
+        learning_rate,
+        num_layers,
+        size,
+        size_layer,
+        output_size,
+        forget_bias = 0.1,
     ):
-
         def lstm_cell(size_layer):
-            return tf.nn.rnn_cell.LSTMCell(size_layer, state_is_tuple=False)
+            return tf.nn.rnn_cell.LSTMCell(size_layer, state_is_tuple = False)
 
         rnn_cells = tf.nn.rnn_cell.MultiRNNCell(
             [lstm_cell(size_layer) for _ in range(num_layers)],
-            state_is_tuple=False,
+            state_is_tuple = False,
         )
         self.X = tf.placeholder(tf.float32, (None, None, size))
         self.Y = tf.placeholder(tf.float32, (None, output_size))
         drop = tf.nn.rnn_cell.DropoutWrapper(
-            rnn_cells, output_keep_prob=forget_bias
+            rnn_cells, output_keep_prob = forget_bias
         )
         self.hidden_layer = tf.placeholder(
             tf.float32, (None, num_layers * 2 * size_layer)
         )
-        self.outputs, self.last_state = tf.nn.dynamic_rnn(
-            drop, self.X, initial_state=self.hidden_layer, dtype=tf.float32
+        _, last_state = tf.nn.dynamic_rnn(
+            drop, self.X, initial_state = self.hidden_layer, dtype = tf.float32
         )
+        
+        with tf.variable_scope('decoder', reuse = False):
+            rnn_cells_dec = tf.nn.rnn_cell.MultiRNNCell(
+                [lstm_cell(size_layer) for _ in range(num_layers)], state_is_tuple = False
+            )
+            # drop_dec = tf.contrib.rnn.DropoutWrapper(
+            #     rnn_cells_dec, output_keep_prob = forget_bias
+            # )
+            # drop_dec = tf.keras.layers.Dropout(rate=dropout_rate)(rnn_cells_dec)
+            drop_dec = tf.nn.rnn_cell.DropoutWrapper(
+                rnn_cells, output_keep_prob = forget_bias
+        )
+            self.outputs, self.last_state = tf.nn.dynamic_rnn(
+                drop_dec, self.X, initial_state = last_state, dtype = tf.float32
+            )
+            
         self.logits = tf.layers.dense(self.outputs[-1], output_size)
         self.cost = tf.reduce_mean(tf.square(self.Y - self.logits))
         self.optimizer = tf.train.AdamOptimizer(learning_rate).minimize(
-                self.cost
-            )
+            self.cost
+        )
 
 
 
@@ -193,20 +194,12 @@ for i in range(simulation_size):
     results.append(forecast())
 print(results)
 
-<<<<<<< HEAD
 accuracies = [calculate_accuracy(df_log.values, r) for r in results]
-=======
-accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
->>>>>>> 009f01c (lstm_s2s)
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-<<<<<<< HEAD
 plt.plot(df_log.values, label='true trend', c='black')
-=======
-plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
->>>>>>> 009f01c (lstm_s2s)
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

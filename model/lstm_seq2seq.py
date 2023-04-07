@@ -7,6 +7,9 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
+import sys
+sys.path.append('../')
+
 from data import data_acquire
 tf.compat.v1.disable_eager_execution()
 sns.set()
@@ -37,7 +40,7 @@ class Model:
         )
         self.X = tf.placeholder(tf.float32, (None, None, size))
         self.Y = tf.placeholder(tf.float32, (None, output_size))
-        drop = tf.contrib.rnn.DropoutWrapper(
+        drop = tf.nn.rnn_cell.DropoutWrapper(
             rnn_cells, output_keep_prob = forget_bias
         )
         self.hidden_layer = tf.placeholder(
@@ -51,9 +54,13 @@ class Model:
             rnn_cells_dec = tf.nn.rnn_cell.MultiRNNCell(
                 [lstm_cell(size_layer) for _ in range(num_layers)], state_is_tuple = False
             )
-            drop_dec = tf.contrib.rnn.DropoutWrapper(
-                rnn_cells_dec, output_keep_prob = forget_bias
-            )
+            # drop_dec = tf.contrib.rnn.DropoutWrapper(
+            #     rnn_cells_dec, output_keep_prob = forget_bias
+            # )
+            # drop_dec = tf.keras.layers.Dropout(rate=dropout_rate)(rnn_cells_dec)
+            drop_dec = tf.nn.rnn_cell.DropoutWrapper(
+                rnn_cells, output_keep_prob = forget_bias
+        )
             self.outputs, self.last_state = tf.nn.dynamic_rnn(
                 drop_dec, self.X, initial_state = last_state, dtype = tf.float32
             )
@@ -176,12 +183,12 @@ for i in range(simulation_size):
     print('simulation %d' % (i + 1))
     results.append(forecast())
 
-accuracies = [calculate_accuracy(df_log['Close'].iloc[-test_size:].values, r) for r in results]
+accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-plt.plot(df_log['Close'].iloc[-test_size:].values, label='true trend', c='black')
+plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

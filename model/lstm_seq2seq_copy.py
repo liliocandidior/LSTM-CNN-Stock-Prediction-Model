@@ -7,6 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
+from tensorflow.keras.models import Sequential
 
 tf.compat.v1.disable_eager_execution()
 sns.set()
@@ -23,7 +24,7 @@ simulation_size = 1
 df = df_log.iloc[:, 0].astype('float32')
 minmax = MinMaxScaler().fit(np.asarray(df).reshape(-1, 1))
 
-class Model:
+class Model(Sequential):
     def __init__(
         self,
         learning_rate,
@@ -97,7 +98,7 @@ test_size = len(test_data)
 num_layers = 1
 size_layer = 128
 timestamp = 5
-epoch = 300
+epoch = 1
 dropout_rate = 0.8
 future_day = test_size
 learning_rate = 0.01
@@ -108,6 +109,7 @@ def forecast():
     modelnn = Model(
         learning_rate, num_layers, df_log.shape[1], size_layer, df_log.shape[1], dropout_rate
     )
+    print(modelnn.summary())
     sess = tf.compat.v1.InteractiveSession()
     sess.run(tf.compat.v1.global_variables_initializer())
     date_ori = pd.to_datetime(df_log.iloc[:, 0]).tolist()

@@ -7,31 +7,16 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
-<<<<<<< HEAD
-
-=======
-import sys
-sys.path.append('../')
-from data import data_acquire
->>>>>>> 009f01c (lstm_s2s)
 tf.compat.v1.disable_eager_execution()
 sns.set()
 tf.compat.v1.random.set_random_seed(1234)
 
-<<<<<<< HEAD
 train_data = np.load("../data/train.npy")
 test_data = np.load('../data/test.npy')
 total_data = np.load('../data/total.npy')
 df_log = pd.DataFrame(total_data)
 df_train = pd.DataFrame(train_data)
 df_test = pd.DataFrame(test_data)
-=======
-df_log = pd.DataFrame(data_acquire.dataset[0])
-df_train = pd.DataFrame(data_acquire.dataset[2])
-df_test = pd.DataFrame(data_acquire.dataset[4])
-
-simulation_size = 1
->>>>>>> 009f01c (lstm_s2s)
 
 simulation_size = 1
 df = df_log.iloc[:, 0].astype('float32')
@@ -193,20 +178,12 @@ for i in range(simulation_size):
     results.append(forecast())
 print(results)
 
-<<<<<<< HEAD
 accuracies = [calculate_accuracy(df_log.values, r) for r in results]
-=======
-accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
->>>>>>> 009f01c (lstm_s2s)
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-<<<<<<< HEAD
 plt.plot(df_log.values, label='true trend', c='black')
-=======
-plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
->>>>>>> 009f01c (lstm_s2s)
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

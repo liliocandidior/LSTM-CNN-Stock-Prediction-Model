@@ -7,19 +7,59 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from datetime import timedelta
 from tqdm import tqdm
-import sys
-sys.path.append('../')
-
-from data import data_acquire
 tf.compat.v1.disable_eager_execution()
 sns.set()
 tf.compat.v1.random.set_random_seed(1234)
 
-df_log = pd.DataFrame(data_acquire.dataset[0])
-df_train = pd.DataFrame(data_acquire.dataset[2])
-df_test = pd.DataFrame(data_acquire.dataset[4])
+train_data = np.load("../data/train.npy")
+test_data = np.load('../data/test.npy')
+total_data = np.load('../data/total.npy')
+df_log = pd.DataFrame(total_data)
+df_train = pd.DataFrame(train_data)
+df_test = pd.DataFrame(test_data)
 
 simulation_size = 1
+df = df_log.iloc[:, 0].astype('float32')
+minmax = MinMaxScaler().fit(np.asarray(df).reshape(-1, 1))
+
+def encoder_block(inp, n_hidden, filter_size):
+    inp = tf.expand_dims(inp, 2)
+    inp = tf.pad(
+        inp,
+        [
+            [0, 0],
+            [(filter_size[0] - 1) // 2, (filter_size[0] - 1) // 2],
+            [0, 0],
+            [0, 0],
+        ],
+    )
+    conv = tf.layers.conv2d(
+        inp, n_hidden, filter_size, padding = 'VALID', activation = None
+    )
+    conv = tf.squeeze(conv, 2)
+    return conv
+
+
+def decoder_block(inp, n_hidden, filter_size):
+    inp = tf.expand_dims(inp, 2)
+    inp = tf.pad(inp, [[0, 0], [filter_size[0] - 1, 0], [0, 0], [0, 0]])
+    conv = tf.layers.conv2d(
+        inp, n_hidden, filter_size, padding = 'VALID', activation = None
+    )
+    conv = tf.squeeze(conv, 2)
+    return conv
+
+
+def glu(x):
+    return tf.multiply(
+        x[:, :, : tf.shape(x)[2] // 2],
+        tf.sigmoid(x[:, :, tf.shape(x)[2] // 2 :]),
+    )
+
+
+def layer(inp, conv_block, kernel_width, n_hidden, residual = None):
+    z = conv_block(inp, n_hidden, (kernel_width, 1))
+    return glu(z) + (residual if residual is not None else 0)
 
 class Model:
     def __init__(
@@ -29,47 +69,65 @@ class Model:
         size,
         size_layer,
         output_size,
-        forget_bias = 0.1,
+        kernel_size = 3,
+        n_attn_heads = 16,
+        dropout = 0.9,
     ):
-        def lstm_cell(size_layer):
-            return tf.nn.rnn_cell.LSTMCell(size_layer, state_is_tuple = False)
-
-        rnn_cells = tf.nn.rnn_cell.MultiRNNCell(
-            [lstm_cell(size_layer) for _ in range(num_layers)],
-            state_is_tuple = False,
-        )
         self.X = tf.placeholder(tf.float32, (None, None, size))
         self.Y = tf.placeholder(tf.float32, (None, output_size))
-        drop = tf.nn.rnn_cell.DropoutWrapper(
-            rnn_cells, output_keep_prob = forget_bias
-        )
-        self.hidden_layer = tf.placeholder(
-            tf.float32, (None, num_layers * 2 * size_layer)
-        )
-        _, last_state = tf.nn.dynamic_rnn(
-            drop, self.X, initial_state = self.hidden_layer, dtype = tf.float32
-        )
-        
-        with tf.variable_scope('decoder', reuse = False):
-            rnn_cells_dec = tf.nn.rnn_cell.MultiRNNCell(
-                [lstm_cell(size_layer) for _ in range(num_layers)], state_is_tuple = False
+
+        encoder_embedded = tf.layers.dense(self.X, size_layer)
+
+        e = tf.identity(encoder_embedded)
+        for i in range(num_layers):
+            z = layer(
+                encoder_embedded,
+                encoder_block,
+                kernel_size,
+                size_layer * 2,
+                encoder_embedded,
             )
-            # drop_dec = tf.contrib.rnn.DropoutWrapper(
-            #     rnn_cells_dec, output_keep_prob = forget_bias
-            # )
-            # drop_dec = tf.keras.layers.Dropout(rate=dropout_rate)(rnn_cells_dec)
-            drop_dec = tf.nn.rnn_cell.DropoutWrapper(
-                rnn_cells, output_keep_prob = forget_bias
-        )
-            self.outputs, self.last_state = tf.nn.dynamic_rnn(
-                drop_dec, self.X, initial_state = last_state, dtype = tf.float32
+            z = tf.nn.dropout(z, keep_prob = dropout)
+            encoder_embedded = z
+
+        encoder_output, output_memory = z, z + e
+        g = tf.identity(encoder_embedded)
+
+        for i in range(num_layers):
+            attn_res = h = layer(
+                encoder_embedded,
+                decoder_block,
+                kernel_size,
+                size_layer * 2,
+                residual = tf.zeros_like(encoder_embedded),
             )
-            
-        self.logits = tf.layers.dense(self.outputs[-1], output_size)
+            C = []
+            for j in range(n_attn_heads):
+                h_ = tf.layers.dense(h, size_layer // n_attn_heads)
+                g_ = tf.layers.dense(g, size_layer // n_attn_heads)
+                zu_ = tf.layers.dense(
+                    encoder_output, size_layer // n_attn_heads
+                )
+                ze_ = tf.layers.dense(output_memory, size_layer // n_attn_heads)
+
+                d = tf.layers.dense(h_, size_layer // n_attn_heads) + g_
+                dz = tf.matmul(d, tf.transpose(zu_, [0, 2, 1]))
+                a = tf.nn.softmax(dz)
+                c_ = tf.matmul(a, ze_)
+                C.append(c_)
+
+            c = tf.concat(C, 2)
+            h = tf.layers.dense(attn_res + c, size_layer)
+            h = tf.nn.dropout(h, keep_prob = dropout)
+            encoder_embedded = h
+
+        encoder_embedded = tf.sigmoid(encoder_embedded[-1])
+        self.logits = tf.layers.dense(encoder_embedded, output_size)
         self.cost = tf.reduce_mean(tf.square(self.Y - self.logits))
         self.optimizer = tf.train.AdamOptimizer(learning_rate).minimize(
             self.cost
         )
+        
 def calculate_accuracy(real, predict):
     real = np.array(real) + 1
     predict = np.array(predict) + 1
@@ -85,14 +143,16 @@ def anchor(signal, weight):
         last = smoothed_val
     return buffer
 
-test_size = len(data_acquire.dataset[3])
+
+test_size = len(test_data)
 num_layers = 1
 size_layer = 128
 timestamp = 5
 epoch = 300
-dropout_rate = 0.8
+dropout_rate = 0.7
 future_day = test_size
 learning_rate = 0.01
+
 
 def forecast():
     tf.compat.v1.reset_default_graph()
@@ -173,22 +233,24 @@ def forecast():
         output_predict[-future_day + i] = out_logits[-1]
         date_ori.append(date_ori[-1] + timedelta(days=1))
 
-    #output_predict = minmax.inverse_transform(output_predict)
+    output_predict = minmax.inverse_transform(output_predict)
     deep_future = anchor(output_predict[:, 0], 0.3)
 
-    return deep_future[-test_size:]
+    return deep_future
+
 
 results = []
 for i in range(simulation_size):
     print('simulation %d' % (i + 1))
     results.append(forecast())
+print(results)
 
-accuracies = [calculate_accuracy(df_log[0].iloc[-test_size:].values, r) for r in results]
+accuracies = [calculate_accuracy(df_log.values, r) for r in results]
 
 plt.figure(figsize=(15, 5))
 for no, r in enumerate(results):
     plt.plot(r, label='forecast %d' % (no + 1))
-plt.plot(df_log[0].iloc[-test_size:].values, label='true trend', c='black')
+plt.plot(df_log.values, label='true trend', c='black')
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()

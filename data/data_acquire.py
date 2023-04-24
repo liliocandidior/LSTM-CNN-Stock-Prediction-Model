@@ -29,15 +29,17 @@ def get_data(api_key, ticker):
     # Retrieve data from timeseries
     data = ts.get_daily_adjusted(ticker, 'full')[0]
 
+    print(data.shape)
+
     # Use close price & volumn as the feature space
-    data = data.iloc[:, [3, 5]]
+    data = data.iloc[:, 3]
 
     # Sort by ascending timestamps to match intuition
     data = data.astype(float).sort_index(ascending=True, axis=0).tail(3000)
 
     # Standarize the data, MinMaxScaler picked for stock price prediction (from online resources)
     scaler = MinMaxScaler(feature_range=(0, 1))
-    data_scaled = scaler.fit_transform(np.array(data))
+    data_scaled = scaler.fit_transform(np.array(data).reshape(-1,1))
 
     # Split the data into x_data & y_data for training, testing, and prediction purpose
     x_data, y_data = create_dataset(data_scaled, 20)
@@ -52,12 +54,12 @@ def get_data(api_key, ticker):
          f'Sample Number: {str(x_data.shape[0])}; Train Sample Number: {str(x_train.shape[0])}; Test Sample Number: {str(x_test.shape[0])}')
     print(f'###############################################################################################\n')
 
-    return x_data, y_data, x_train, y_train, x_test, y_test
+    return x_data, y_data, x_train, y_train, x_test, y_test, scaler
 
 
-API_KEY = 'R680A7OABBQ58NL3'
-TICKER = 'AAPL'
-dataset = get_data(API_KEY, TICKER)
+# API_KEY = 'R680A7OABBQ58NL3'
+# TICKER = 'AAPL'
+# dataset = get_data(API_KEY, TICKER)
 # if __name__ == '__main__':
 #     get_data(API_KEY, TICKER)
 

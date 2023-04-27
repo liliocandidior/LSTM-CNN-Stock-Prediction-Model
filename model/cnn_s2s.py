@@ -11,6 +11,7 @@ import sys
 sys.path.append('../')
 from data import data_acquire
 from utils import plot_util
+from result import result_analysis
 # from data_acquire import get_data
 # from plot_util import plotResult
 import numpy as np
@@ -19,95 +20,70 @@ import math
 API_KEY = 'R680A7OABBQ58NL3'
 TICKER = 'AAPL'
 
-(data, x_data, y_data, x_train, y_train, x_test, y_test, scaler) = data_acquire.get_data(API_KEY, TICKER)
-n_steps = x_train.shape[1]
-num_features = x_train.shape[2]
+def cnn_s2s(API_KEY, TICKER):
+    (data, x_data, y_data, x_train, y_train, x_test, y_test, scaler) = data_acquire.get_data(API_KEY, TICKER)
+    n_steps = x_train.shape[1]
+    num_features = x_train.shape[2]
 
 
-# define the model
-model = Sequential()
+    # define the model
+    model = Sequential()
 
-# add the encoder layers
-encoder_inputs = Input(shape=(n_steps, num_features))
-encoder = Conv1D(32, 1, activation='tanh', padding='same')(encoder_inputs)
-encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
-encoder = Conv1D(64, 1, activation='tanh', padding='same')(encoder)
-encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
-encoder = Conv1D(128, 1, activation='tanh', padding='same')(encoder)
-encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
-encoder = Conv1D(256, 1, activation='tanh', padding='same')(encoder)
-encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
-encoder = Dropout(0.1)(encoder)
+    # add the encoder layers
+    encoder_inputs = Input(shape=(n_steps, num_features))
+    encoder = Conv1D(32, 1, activation='tanh', padding='same')(encoder_inputs)
+    encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
+    encoder = Conv1D(64, 1, activation='tanh', padding='same')(encoder)
+    encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
+    encoder = Conv1D(128, 1, activation='tanh', padding='same')(encoder)
+    encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
+    encoder = Conv1D(256, 1, activation='tanh', padding='same')(encoder)
+    encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
+    encoder = Conv1D(512, 1, activation='tanh', padding='same')(encoder)
+    encoder = MaxPooling1D(pool_size=2, padding='same')(encoder)
+    encoder = Dropout(0.5)(encoder)
 
-# add the decoder layers
-decoder = Conv1DTranspose(256, 1, activation='tanh', padding='same')(encoder)
-decoder = BatchNormalization()(decoder)
-decoder = Conv1DTranspose(128, 1, activation='tanh', padding='same')(decoder)
-decoder = BatchNormalization()(decoder)
-decoder = Conv1DTranspose(64, 1, activation='tanh', padding='same')(decoder)
-decoder = BatchNormalization()(decoder)
-decoder = Conv1DTranspose(32, 1, activation='tanh', padding='same')(decoder)
-decoder = BatchNormalization()(decoder)
-decoder = GlobalMaxPooling1D()(decoder)
-decoder = Dropout(0.1)(decoder)
-
-
-
-# add the output layer
-outputs = Dense(1, activation='linear')(decoder)
-
-# compile the model
-model = Model(inputs=encoder_inputs, outputs=outputs)
-
-# model = Sequential()
-
-# # add the encoder layers
-# encoder_inputs = Input(shape=(n_steps, num_features))
-# encoder = LSTM(64, activation='relu', return_sequences=True)(encoder_inputs)
-# encoder = LSTM(64, activation='relu', return_sequences=True)(encoder)
-# encoder = Dropout(0.1)(encoder)
-
-# # add the decoder layers
-# decoder = LSTM(64, activation='relu', return_sequences=True)(encoder)
-# decoder = LSTM(64, activation='relu', return_sequences=False)(decoder)
-# decoder = Dropout(0.1)(decoder)
-
-# # add the output layer
-# outputs = Dense(1, activation='linear')(decoder)
-
-# # compile the model
-# model = Model(inputs=encoder_inputs, outputs=outputs)
+    # add the decoder layers
+    decoder = Conv1DTranspose(512, 1, activation='tanh', padding='same')(encoder)
+    decoder = BatchNormalization()(decoder)
+    decoder = Conv1DTranspose(256, 1, activation='tanh', padding='same')(encoder)
+    decoder = BatchNormalization()(decoder)
+    decoder = Conv1DTranspose(128, 1, activation='tanh', padding='same')(decoder)
+    decoder = BatchNormalization()(decoder)
+    decoder = Conv1DTranspose(64, 1, activation='tanh', padding='same')(decoder)
+    decoder = BatchNormalization()(decoder)
+    decoder = Conv1DTranspose(32, 1, activation='tanh', padding='same')(decoder)
+    decoder = BatchNormalization()(decoder)
+    decoder = GlobalMaxPooling1D()(decoder)
+    decoder = Dropout(0.5)(decoder)
 
 
-print(model.summary())
-opt = keras.optimizers.legacy.Adam(learning_rate=0.001)
 
-import time
-start = time.time()
+    # add the output layer
+    outputs = Dense(1, activation='linear')(decoder)
 
-model.compile(loss='mse',optimizer=opt)
-model.fit(x_train, y_train, epochs=30, validation_data=(x_test,y_test), batch_size=64, verbose=1)
+    # compile the model
+    model = Model(inputs=encoder_inputs, outputs=outputs)
 
-end = time.time()
-print('Time: '+str(end - start))
+    # print(model.summary())
+    opt = keras.optimizers.legacy.Adam(learning_rate=0.001)
 
-train_predict = model.predict(x_train)
-test_predict = model.predict(x_test)
-test_predict = test_predict
-# print("the shape is",train_predict.shape)
-# print("the shape is",test_predict.shape)
-train_predict=scaler.inverse_transform(train_predict)
+    import time
+    start = time.time()
 
-print(train_predict)
+    model.compile(loss='mse',optimizer=opt)
+    model.fit(x_train, y_train, epochs=45, validation_data=(x_test,y_test), batch_size=64, verbose=1)
 
-# test_predict = model.predict(x_test)
-test_predict=scaler.inverse_transform(test_predict)
+    end = time.time()
+    print('Time: '+str(end - start))
 
-mse = math.sqrt(mean_squared_error(y_train,train_predict))
-mse2 = math.sqrt(mean_squared_error(y_test,test_predict))
+    train_predict = model.predict(x_train)
+    test_predict = model.predict(x_test)
 
-print(f'######################## Min Squared error training is {mse} ########################')
-print(f'######################## Min Squared error testing is {mse2} ########################')
+    result_analysis.analysis(train_predict, y_train, test_predict, y_test)
 
-plot_util.plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])
+    train_predict=scaler.inverse_transform(train_predict)
+    test_predict=scaler.inverse_transform(test_predict)
+
+    plot_util.plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])
 

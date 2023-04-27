@@ -9,10 +9,9 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas as pd
 sys.path.insert(0, 'data')
 sys.path.insert(0, 'utils')
-sys.path.insert(0, 'result')
 from data_acquire import get_data
 from plot_util import plotResult
-from result_analysis import analysis
+import math
 import numpy as np
 
 
@@ -51,4 +50,11 @@ def lstm(API_KEY, TICKER, MODE):
     train_predict=scaler.inverse_transform(train_predict)
     test_predict=scaler.inverse_transform(test_predict)
 
-    plotResult(data, x_data, model, scaler, train_predict, test_predict, 10, x_train.shape[0])
+mse = math.sqrt(mean_squared_error(y_train,train_predict))
+mse2 = math.sqrt(mean_squared_error(y_test,test_predict))
+
+print(f'######################## Min Squared error training is {mse} ########################')
+print(f'######################## Min Squared error testing is {mse2} ########################')
+
+
+plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])

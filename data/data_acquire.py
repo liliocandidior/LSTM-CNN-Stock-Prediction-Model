@@ -39,14 +39,14 @@ def get_data(api_key, ticker):
     data_scaled = scaler.fit_transform(np.array(data).reshape(-1,1))
 
     # Split the data into x_data & y_data for training, testing, and prediction purpose
-    x_data, y_data = create_dataset(data_scaled, 20)
+    x_data, y_data = create_dataset(data_scaled, 10)
 
     # Preserve the 20-day shape of X data
     x_data = x_data.reshape(x_data.shape[0],x_data.shape[1],1)
 
 
     # Shuffle = false since we cannot mess up with the sequence for timeseries data
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.05, shuffle=False)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, shuffle=False)
     print(f'\n######################## Data for {ticker} scaled and partitioned complete ########################')
     print(
          f'Sample Number: {str(x_data.shape[0])}; Train Sample Number: {str(x_train.shape[0])}; Test Sample Number: {str(x_test.shape[0])}')

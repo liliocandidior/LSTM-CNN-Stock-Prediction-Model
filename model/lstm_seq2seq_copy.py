@@ -203,3 +203,4 @@ plt.plot(df_log.values, label='true trend', c='black')
 plt.legend()
 plt.title('average accuracy: %.4f' % (np.mean(accuracies)))
 plt.show()
+

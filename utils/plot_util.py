@@ -22,12 +22,12 @@ def plotResult(data, x_data, model, scaler, train_predict, test_predict, n_past,
     # # Determine past and future data to plot and plug back into the date dataframe
     us_bd = CustomBusinessDay(calendar = USFederalHolidayCalendar())
     to_past = 60
-    to_future = 7
+    to_future = 14
     forecast_period_dates = pd.date_range(data.index[-1], periods=to_future, freq=us_bd).tolist()
     past_period_dates = pd.date_range(data.index[-to_past], periods=to_past, freq=us_bd).tolist()
 
     prediction = []
-    current_batch = x_data[-1:]
+    current_batch = x_data[-1, :, :].reshape(1,10,1)
     for i in range(to_future):
         current_pred = model.predict(current_batch)[0]
         prediction.append(current_pred)

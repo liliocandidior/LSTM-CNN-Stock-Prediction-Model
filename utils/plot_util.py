@@ -12,7 +12,7 @@ def on_pick(event):
     ind = event.ind
     print ('x, y of mouse: {:.2f},{:.2f}'.format(xmouse, ymouse))
     print ('Data point:', x[ind[0]], y[ind[0]])
-    
+
 def plotResult(data, x_data, model, scaler, train_predict, test_predict, n_past, training_size):
     df_for_training_plt = data.reset_index().iloc[:,1].tolist()
 

@@ -22,7 +22,7 @@ def plotResult(data, x_data, model, scaler, train_predict, test_predict, n_past,
     # # Determine past and future data to plot and plug back into the date dataframe
     us_bd = CustomBusinessDay(calendar = USFederalHolidayCalendar())
     to_past = 60
-    to_future = 14
+    to_future = 7
     forecast_period_dates = pd.date_range(data.index[-1], periods=to_future, freq=us_bd).tolist()
     past_period_dates = pd.date_range(data.index[-to_past], periods=to_past, freq=us_bd).tolist()
 

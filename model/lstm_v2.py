@@ -23,10 +23,11 @@ def lstm(API_KEY, TICKER):
     model = Sequential()
     model.add(Conv1D(64,1,activation='tanh',padding='same', input_shape=(x_train.shape[1],x_train.shape[2])))
     model.add(MaxPooling1D(pool_size=1, padding='same'))
-    model.add(LSTM(128, activation='tanh', return_sequences = True))
+    model.add(LSTM(256, activation='tanh', return_sequences = True))
     model.add(Dropout(0.2))
     model.add(LSTM(128, activation='tanh', return_sequences = True))
-    model.add(LSTM(128, activation='tanh'))
+    model.add(Dropout(0.2))
+    model.add(LSTM(64, activation='tanh'))
     model.add(Dense(1))
     opt = keras.optimizers.Adam(learning_rate=0.001)
     import time
@@ -46,4 +47,4 @@ def lstm(API_KEY, TICKER):
     train_predict=scaler.inverse_transform(train_predict)
     test_predict=scaler.inverse_transform(test_predict)
 
-    plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])
+    plotResult(data, x_data, model, scaler, train_predict, test_predict, 10, x_train.shape[0])

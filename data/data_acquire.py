@@ -39,7 +39,7 @@ def get_data(api_key, ticker):
     data_scaled = scaler.fit_transform(np.array(data).reshape(-1,1))
 
     # Split the data into x_data & y_data for training, testing, and prediction purpose
-    x_data, y_data = create_dataset(data_scaled, 20)
+    x_data, y_data = create_dataset(data_scaled, 10)
 
     # Preserve the 20-day shape of X data
     x_data = x_data.reshape(x_data.shape[0],x_data.shape[1],1)

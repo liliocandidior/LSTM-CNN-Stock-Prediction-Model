@@ -27,7 +27,7 @@ def plotResult(data, x_data, model, scaler, train_predict, test_predict, n_past,
     past_period_dates = pd.date_range(data.index[-to_past], periods=to_past, freq=us_bd).tolist()
 
     prediction = []
-    current_batch = x_data[-1, :, :].reshape(1,20,1)
+    current_batch = x_data[-1, :, :].reshape(1,10,1)
     for i in range(to_future):
         current_pred = model.predict(current_batch)[0]
         prediction.append(current_pred)

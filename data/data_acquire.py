@@ -46,7 +46,7 @@ def get_data(api_key, ticker):
 
 
     # Shuffle = false since we cannot mess up with the sequence for timeseries data
-    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.05, shuffle=False)
+    x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, shuffle=False)
     print(f'\n######################## Data for {ticker} scaled and partitioned complete ########################')
     print(
          f'Sample Number: {str(x_data.shape[0])}; Train Sample Number: {str(x_train.shape[0])}; Test Sample Number: {str(x_test.shape[0])}')

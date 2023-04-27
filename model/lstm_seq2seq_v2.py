@@ -7,18 +7,22 @@ from pandas.tseries.offsets import CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import mplcursors
 from sklearn.metrics import mean_squared_error
+# import sys
+# sys.path.insert(0, 'data')
+# sys.path.insert(0, 'utils')
+# from data_acquire import get_data
+# from plot_util import plotResult
 import sys
-sys.path.insert(0, 'data')
-sys.path.insert(0, 'utils')
-from data_acquire import get_data
-from plot_util import plotResult
+sys.path.append('../')
+from data import data_acquire
+from utils import plot_util
 import numpy as np
 import math
 
 API_KEY = 'R680A7OABBQ58NL3'
 TICKER = 'AAPL'
 
-(data, x_data, y_data, x_train, y_train, x_test, y_test, scaler) = get_data(API_KEY, TICKER)
+(data, x_data, y_data, x_train, y_train, x_test, y_test, scaler) = data_acquire.get_data(API_KEY, TICKER)
 n_steps = x_train.shape[1]
 num_features = x_train.shape[2]
 
@@ -69,4 +73,4 @@ mse2 = math.sqrt(mean_squared_error(y_test,test_predict))
 print(f'######################## Min Squared error training is {mse} ########################')
 print(f'######################## Min Squared error testing is {mse2} ########################')
 
-plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])
+plot_util.plotResult(data, x_data, model, scaler, train_predict, test_predict, 20, x_train.shape[0])

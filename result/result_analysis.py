@@ -11,8 +11,3 @@ def analysis(y_pred_train, y_actual_train, y_pred_test, y_actual_test):
     print(f'######################## Min Squared error testing is {mse_test} ########################')
     print(f'######################## R2 score of Training Dataset: {r2_train} ########################')
     print(f'######################## R2 score of Testing Dataset: {r2_test} ########################')
-
-    print(f'######################## Min Squared error training is {mse_train} ########################')
-    print(f'######################## Min Squared error testing is {mse_test} ########################')
-    print(f'######################## R2 score of Training Dataset: {r2_train} ########################')
-    print(f'######################## R2 score of Testing Dataset: {r2_test} ########################')

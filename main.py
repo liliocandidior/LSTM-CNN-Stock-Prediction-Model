@@ -1,6 +1,9 @@
 import sys
-sys.path.insert(0, 'model')
-from lstm_v2 import lstm
+# sys.path.insert(0, 'model')
+sys.path.append('../')
+from model import lstm_v2
+from model import cnn
+from model import cnn_s2s
 
 API_KEY = 'R680A7OABBQ58NL3'
 def main(argv):
@@ -13,11 +16,13 @@ def main(argv):
     MODEL = argv[-1]
 
     if MODEL == 'lstm':
-        lstm(API_KEY, TICKER)
+        lstm_v2.lstm(API_KEY, TICKER)
     if MODEL == 'seq2seq':
         pass
     if MODEL == 'cnn':
-        pass
+        cnn.cnn(API_KEY, TICKER)
+    if MODEL == 'cnn_s2s':
+        cnn_s2s.cnn_s2s(API_KEY, TICKER)
 
     # for TICKER in TICKERS:
     #     print(f'\n######################## Beginning to process on {TICKER} with Mode {MODE} ########################')
